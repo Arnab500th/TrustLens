@@ -67,3 +67,4 @@ if __name__ == "__main__":
     assert any(f.id == "REPEATED_REPORT" for f in res)
     assert any(f.id == "SHARED_INFRASTRUCTURE" for f in res)
     print("PASS")
+
