@@ -4,9 +4,12 @@ import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import json
+import logging
 import os
 from typing import Optional
 import uuid
+
+logger = logging.getLogger("trustlens")
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -228,12 +231,23 @@ async def scan_endpoint(req: ScanRequest):
             cached_res["cached_at"] = cached.get("created_at") or cached.get("checked_at")
             return cached_res
 
-    past = list_scans(limit=200)
-    raw_result = await scan_url(clean, past_scans=past)
-    formatted = _format_frontend_result(raw_result, source=req.source or "web")
+    try:
+        past = list_scans(limit=200)
+    except Exception as e:
+        logger.warning(f"Could not load past scans: {e}")
+        past = []
 
-    save_scan(formatted)
-    return formatted
+    try:
+        raw_result = await scan_url(clean, past_scans=past)
+        formatted = _format_frontend_result(raw_result, source=req.source or "web")
+        try:
+            save_scan(formatted)
+        except Exception as e:
+            logger.warning(f"Could not persist scan: {e}")
+        return formatted
+    except Exception as e:
+        logger.exception(f"Error scanning URL {clean}: {e}")
+        raise HTTPException(status_code=500, detail=f"Scan processing error: {str(e)}")
 
 
 @app.get("/api/scan/{scan_id}")
@@ -264,16 +278,27 @@ async def message_endpoint(req: MessageRequest):
     if not req.text.strip():
         raise HTTPException(status_code=400, detail="Message text cannot be empty")
 
-    past = list_scans(limit=200)
-    raw_result = await analyze_message(req.text, sender=req.sender or "", claim=req.claim or "", past_scans=past)
-    formatted = _format_frontend_result(raw_result, source="message")
-    formatted["urls_found"] = raw_result.get("urls_found", [])
-    formatted["link_results"] = raw_result.get("link_results", [])
-    formatted["sender"] = req.sender or ""
-    formatted["claim"] = req.claim or ""
+    try:
+        past = list_scans(limit=200)
+    except Exception:
+        past = []
 
-    save_scan(formatted)
-    return formatted
+    try:
+        raw_result = await analyze_message(req.text, sender=req.sender or "", claim=req.claim or "", past_scans=past)
+        formatted = _format_frontend_result(raw_result, source="message")
+        formatted["urls_found"] = raw_result.get("urls_found", [])
+        formatted["link_results"] = raw_result.get("link_results", [])
+        formatted["sender"] = req.sender or ""
+        formatted["claim"] = req.claim or ""
+
+        try:
+            save_scan(formatted)
+        except Exception as e:
+            logger.warning(f"Could not persist message scan: {e}")
+        return formatted
+    except Exception as e:
+        logger.exception(f"Error analyzing message: {e}")
+        raise HTTPException(status_code=500, detail=f"Message analysis error: {str(e)}")
 
 
 @app.get("/api/feed")
@@ -390,8 +415,7 @@ if os.path.isdir(_frontend_dir):
 
 
 if __name__ == "__main__":
-    from fastapi.testclient import TestClient
-    client = TestClient(app)
-    r = client.get("/api/health")
-    print("health response:", r.status_code, r.json())
-    print("PASS" if r.status_code == 200 and r.json().get("ok") else "FAIL")
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    print(f"Starting TrustLens server on port {port}...")
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
