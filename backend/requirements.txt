@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+gunicorn
+httpx
+pydantic
+tldextract
+beautifulsoup4
+python-dotenv
+rapidfuzz
+dnspython
+cryptography
+python-whois
+pymongo
+jellyfish
+scikit-learn
+joblib

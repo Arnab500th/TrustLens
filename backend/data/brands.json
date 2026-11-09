@@ -1,0 +1,149 @@
+[
+  {
+    "name": "State Bank of India",
+    "canonical_domain": "sbi.co.in",
+    "label": "statebank",
+    "keywords": [
+      "onlinesbi",
+      "statebank",
+      "sbicard"
+    ]
+  },
+  {
+    "name": "HDFC Bank",
+    "canonical_domain": "hdfcbank.com",
+    "label": "hdfcbank",
+    "keywords": [
+      "hdfcbank",
+      "hdfcnet"
+    ]
+  },
+  {
+    "name": "ICICI Bank",
+    "canonical_domain": "icicibank.com",
+    "label": "icicibank",
+    "keywords": [
+      "icicibank"
+    ]
+  },
+  {
+    "name": "Axis Bank",
+    "canonical_domain": "axisbank.com",
+    "label": "axisbank",
+    "keywords": [
+      "axisbank"
+    ]
+  },
+  {
+    "name": "Paytm",
+    "canonical_domain": "paytm.com",
+    "label": "paytm",
+    "keywords": [
+      "paytm",
+      "paytmbank"
+    ]
+  },
+  {
+    "name": "PhonePe",
+    "canonical_domain": "phonepe.com",
+    "label": "phonepe",
+    "keywords": [
+      "phonepe"
+    ]
+  },
+  {
+    "name": "IRCTC",
+    "canonical_domain": "irctc.co.in",
+    "label": "irctc",
+    "keywords": [
+      "irctc"
+    ]
+  },
+  {
+    "name": "Flipkart",
+    "canonical_domain": "flipkart.com",
+    "label": "flipkart",
+    "keywords": [
+      "flipkart"
+    ]
+  },
+  {
+    "name": "Google",
+    "canonical_domain": "google.com",
+    "label": "google",
+    "keywords": [
+      "google",
+      "gmail"
+    ]
+  },
+  {
+    "name": "Microsoft",
+    "canonical_domain": "microsoft.com",
+    "label": "microsoft",
+    "keywords": [
+      "microsoft",
+      "outlook",
+      "office365"
+    ]
+  },
+  {
+    "name": "Apple",
+    "canonical_domain": "apple.com",
+    "label": "apple",
+    "keywords": [
+      "apple",
+      "icloud"
+    ]
+  },
+  {
+    "name": "Amazon",
+    "canonical_domain": "amazon.in",
+    "label": "amazon",
+    "keywords": [
+      "amazon",
+      "amazonpay"
+    ]
+  },
+  {
+    "name": "PayPal",
+    "canonical_domain": "paypal.com",
+    "label": "paypal",
+    "keywords": [
+      "paypal"
+    ]
+  },
+  {
+    "name": "Meta / Facebook",
+    "canonical_domain": "facebook.com",
+    "label": "facebook",
+    "keywords": [
+      "facebook",
+      "instagram",
+      "whatsapp"
+    ]
+  },
+  {
+    "name": "Netflix",
+    "canonical_domain": "netflix.com",
+    "label": "netflix",
+    "keywords": [
+      "netflix"
+    ]
+  },
+  {
+    "name": "DHL Express",
+    "canonical_domain": "dhl.com",
+    "label": "dhl",
+    "keywords": [
+      "dhlexpress"
+    ]
+  },
+  {
+    "name": "FedEx",
+    "canonical_domain": "fedex.com",
+    "label": "fedex",
+    "keywords": [
+      "fedex"
+    ]
+  }
+]

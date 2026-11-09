@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="description" content="TrustLens checks links before you trust them.">
+  <title>TrustLens — Check before you trust</title>
+  <link rel="icon" type="image/png" href="assets/icon-192.png?v=2">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#" aria-label="TrustLens home">
+        <span class="brand-mark"></span>
+        <span class="brand-name">TrustLens<small>LINK INTELLIGENCE</small></span>
+      </a>
+      <div class="nav-label">WORKSPACE</div>
+      <nav class="side-nav" aria-label="Main navigation">
+        <button class="nav-item active" data-view="scan"><span>⌕</span> Scan a link</button>
+        <button class="nav-item" data-view="message"><span>✉</span> Check a message</button>
+        <button class="nav-item" data-view="result"><span>▣</span> Scan report</button>
+        <button class="nav-item" data-view="feed"><span>◉</span> Live threat feed</button>
+        <button class="nav-item" data-view="history"><span>◷</span> Scan history</button>
+        <button class="nav-item" data-view="report"><span>⚑</span> Report a link</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="status-card"><span class="status-dot"></span><div><b>Protection engine</b><small>Ready to analyze</small></div><span class="status-pill">ONLINE</span></div>
+        <div class="profile"><div class="avatar"></div><div><b>TrustLens User</b><small>Personal workspace</small></div><span class="more">•••</span></div>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <div class="mobile-brand"><span class="brand-mark"></span><b>TrustLens</b></div>
+        <div class="crumb"><span>Workspace</span><span class="slash">/</span><b id="crumb-current">Scan a link</b></div>
+        <div class="top-actions"><span class="secure-label"><span class="status-dot"></span> SYSTEM OPERATIONAL</span><button class="icon-button" id="help-btn" title="About TrustLens">?</button></div>
+      </header>
+
+      <section class="view active" id="view-scan">
+        <div class="hero">
+          <div class="eyebrow"><span class="spark">✦</span> LINK SECURITY, MADE CLEAR</div>
+          <h1>Check before<br><span>you trust.</span></h1>
+          <p class="hero-copy">One link is all it takes. TrustLens checks for suspicious signals<br class="desktop-only"> and turns complex threat data into a clear answer.</p>
+        </div>
+
+        <div class="scan-card">
+          <div class="card-top"><div><span class="step-tag">01</span><b>Analyze a URL</b></div><span class="live-badge"><span></span> READY TO SCAN</span></div>
+          <form id="scan-form">
+            <label for="url-input">Paste a link you want to check</label>
+            <div class="input-wrap"><span class="input-icon">↗</span><input id="url-input" type="text" inputmode="url" placeholder="https://example.com" autocomplete="off" required><button type="submit" class="scan-button"><span>Scan link</span><span>→</span></button></div>
+            <div class="input-hint"><span>↳</span> URLs only · Do not enter passwords or private information</div>
+          </form>
+          <div class="quick-row"><span>Try an example</span><button class="example" data-url="https://example.com">example.com</button><button class="example" data-url="http://secure-login-example.test">suspicious sample</button></div>
+
+          <!-- QR scanner: camera frames or an uploaded QR image are decoded into a URL. -->
+          <div class="qr-panel">
+            <div class="qr-panel-heading">
+              <div>
+                <span class="step-tag">OR</span>
+                <b>Scan a QR code</b>
+              </div>
+              <span class="qr-label">QR LINK CHECK</span>
+            </div>
+            <p class="qr-description">Check the website hidden inside a QR code before visiting it.</p>
+            <div class="qr-actions">
+              <button type="button" class="scan-button" id="qr-start-button">Open camera <span>⌁</span></button>
+              <label class="qr-upload-button" for="qr-file-input">Upload QR image</label>
+              <input id="qr-file-input" type="file" accept="image/*" hidden>
+              <button type="button" class="qr-stop-button" id="qr-stop-button" disabled>Stop camera</button>
+            </div>
+            <div class="qr-camera-box" id="qr-camera-box" hidden>
+              <video id="qr-video" playsinline muted></video>
+              <canvas id="qr-canvas" hidden></canvas>
+              <div class="qr-frame" aria-hidden="true"></div>
+              <div class="qr-camera-caption" id="qr-camera-status">Point your camera at a QR code.</div>
+            </div>
+            <div class="qr-hint" id="qr-hint">Camera access works on HTTPS or localhost. You can also upload a QR image.</div>
+          </div>
+        </div>
+
+        <div class="scan-progress" id="scan-progress" hidden>
+          <span class="progress-spinner"></span>
+          <div>
+            <b id="progress-title">Analyzing the destination…</b>
+            <small id="progress-detail">Sending the URL to TrustLens.</small>
+          </div>
+        </div>
+
+        <div class="result-area" id="result-area" hidden>
+          <div class="result-heading"><span class="step-tag">02</span><b>Scan result</b><span class="result-time" id="result-time"></span></div>
+          <div class="result-card" id="result-card">
+            <div class="result-main">
+              <div class="verdict-icon" id="verdict-icon">✓</div>
+              <div class="verdict-copy">
+                <div class="verdict-label" id="verdict-label">SAFE</div>
+                <h2 id="verdict-title">No threats found</h2>
+                <p id="verdict-desc">Review the evidence below before opening the link.</p>
+              </div>
+              <div class="score">
+                <div class="score-number" id="score-number">08<span>/100</span></div>
+                <small>RISK SCORE</small>
+              </div>
+            </div>
+            <div class="meter"><span id="score-meter"></span></div>
+            <div class="result-meta">
+              <div><small>CONFIDENCE</small><b id="confidence-value">—</b></div>
+              <div id="matched-brand-wrap" hidden><small>MATCHED BRAND</small><b id="matched-brand-value">—</b></div>
+              <div><small>SCAN SOURCE</small><b id="scan-source-value">WEB</b></div>
+            </div>
+            <p class="result-explanation" id="result-explanation"></p>
+            <div class="findings-section">
+              <div class="findings-heading"><b>Key potential risks</b><span>TOP FINDINGS</span></div>
+              <div class="top-findings" id="top-findings"></div>
+            </div>
+            <details class="all-findings-details" id="all-findings-details">
+              <summary>View all findings grouped by evidence pillar</summary>
+              <div id="all-findings-groups" class="all-findings-groups"></div>
+            </details>
+            <div class="unavailable-modules" id="unavailable-modules" hidden></div>
+            <div class="evidence-heading"><b>Analysis modules</b><span>STATUS</span></div>
+            <div class="evidence-grid" id="evidence-grid"></div>
+            <div class="result-footer"><span>ⓘ Results are signals, not a guarantee.</span><span class="footer-actions"><button id="open-report">Full report →</button><button id="export-stix-btn">Export STIX 2.1 ⭳</button><button id="copy-result">Copy summary ↗</button></span></div>
+          </div>
+        </div>
+
+        <div class="feature-row">
+          <div class="feature"><div class="feature-icon purple">⌁</div><div><b>Layered analysis</b><p>Multiple checks work together<br>to assess a link.</p></div></div>
+          <div class="feature"><div class="feature-icon blue">◈</div><div><b>Clear explanations</b><p>Understand the signals<br>behind every result.</p></div></div>
+          <div class="feature"><div class="feature-icon green">⛨</div><div><b>Privacy-minded</b><p>Never submit passwords<br>or sensitive information.</p></div></div>
+        </div>
+        <footer class="page-footer"><span>© 2026 TrustLens</span><span>Built to help you browse with confidence <span class="footer-star">✦</span></span></footer>
+      </section>
+
+      <section class="view" id="view-feed">
+        <div class="page-heading"><div class="eyebrow">COMMUNITY SIGNALS</div><h1>Live threat <span>feed.</span></h1><p>Recent example signals and reported suspicious URLs.</p></div>
+        <div class="section-card"><div class="section-head"><b>Recent threat activity</b><span style="display:flex;gap:12px;align-items:center;"><a id="stix-feed-link" href="#" target="_blank" class="text-button" style="text-decoration:none;">Export STIX 2.1 ⭳</a><span class="live-badge"><span></span> <span id="feed-mode"></span></span></span></div><div id="feed-list" class="list-rows"></div></div>
+      </section>
+      <section class="view" id="view-history">
+        <div class="page-heading"><div class="eyebrow">YOUR ACTIVITY</div><h1>Scan <span>history.</span></h1><p>Results from scans performed in this browser.</p></div>
+        <div class="section-card"><div class="section-head"><b>Recent scans</b><button class="text-button" id="clear-history">Clear history</button></div><div id="history-list" class="list-rows"></div></div>
+      </section>
+      <section class="view" id="view-report">
+        <div class="page-heading"><div class="eyebrow">HELP THE COMMUNITY</div><h1>Report a <span>link.</span></h1><p>Share a suspicious URL for review by your team.</p></div>
+        <div class="section-card report-card"><form id="report-form"><label for="report-url">Suspicious URL</label><input id="report-url" type="url" placeholder="https://suspicious-site.com" required><label for="report-reason">What seems suspicious?</label><select id="report-reason"><option>Phishing or fake login page</option><option>Impersonation / lookalike domain</option><option>Malware or unwanted download</option><option>Spam or scam</option><option>Other</option></select><label for="report-notes">Additional notes (optional)</label><textarea id="report-notes" rows="4" placeholder="Describe what you noticed…"></textarea><button class="scan-button" type="submit">Submit report <span>→</span></button></form></div>
+      </section>
+
+      <section class="view" id="view-message">
+        <div class="page-heading"><div class="eyebrow">MESSAGE CHECK</div><h1>Check a <span>message.</span></h1><p>Got a text claiming to be from your bank, college or a courier? Check it here before you tap or reply.</p></div>
+        <div class="scan-card report-card msg-card">
+          <div class="card-top"><div><span class="step-tag">01</span><b>Analyze a message</b></div><span class="live-badge"><span></span> READY TO SCAN</span></div>
+          <form id="msg-form">
+            <div class="msg-row">
+              <div><label for="msg-sender">Sender name or number</label><input id="msg-sender" type="text" placeholder="VM-HDFCBK or +91 98765 43210" autocomplete="off"></div>
+              <div><label for="msg-claim">Who does it claim to be from?</label><select id="msg-claim"><option value="">Not sure</option><option value="bank">Bank or card issuer</option><option value="university">University or school</option><option value="government">Government or tax office</option><option value="courier">Courier or delivery</option><option value="telecom">Mobile operator</option><option value="wallet">Wallet or UPI app</option><option value="shop">Online shop</option><option value="job">Employer or job offer</option></select></div>
+            </div>
+            <label for="msg-text">Message text</label>
+            <textarea id="msg-text" rows="6" placeholder="Paste the whole message here…" required></textarea>
+            <div class="input-hint"><span>↳</span> Rules run in your browser. Only a link, if found, goes to the TrustLens backend. Never paste OTPs, passwords or card numbers.</div>
+            <button class="scan-button" type="submit" id="msg-submit"><span>Check message</span><span>→</span></button>
+          </form>
+          <div class="quick-row"><span>Try an example</span><button type="button" class="msg-example" data-ex="bank">bank KYC</button><button type="button" class="msg-example" data-ex="parcel">parcel fee</button><button type="button" class="msg-example" data-ex="real">ordinary bank alert</button></div>
+        </div>
+      </section>
+      <section class="view" id="view-result">
+        <div class="page-heading"><div class="eyebrow">VERIFIED OUTCOME</div><h1>Scan <span>report.</span></h1><p>The risk label, the evidence behind it and what to do next.</p></div>
+        <div id="report-body"></div>
+        <div class="section-card">
+          <div class="section-head"><b>Risk labels</b><span class="qr-label">HOW WE DECIDE</span></div>
+          <div class="label-table" id="label-table"></div>
+          <p class="label-note">Every result also shows the time of the check, where each finding came from, which checks could not run, and what to do next.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div class="toast-backdrop" id="toast-backdrop"><div class="toast" role="status"><div class="toast-symbol" id="toast-symbol">✓</div><div><b id="toast-title">Done</b><p id="toast-message">Action completed.</p></div><button id="toast-close" aria-label="Close">×</button></div></div>
+  <div class="modal-backdrop" id="about-modal"><div class="modal"><button class="modal-close" id="modal-close">×</button><div class="brand-mark modal-mark">T<span>L</span></div><h2>About TrustLens</h2><p>TrustLens is a link-checking interface prototype. Connect it to your FastAPI backend to use real threat analysis.</p><div class="modal-note">A SAFE result does not guarantee that a website is harmless. Avoid entering credentials on unfamiliar sites.</div><button class="scan-button full" id="modal-ok">Got it</button></div></div>
+  <!-- jsQR decodes QR codes from camera frames drawn onto a canvas. -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

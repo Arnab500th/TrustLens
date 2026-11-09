@@ -1,0 +1,62 @@
+# Environment & Secrets (NEVER COMMIT)
+.env
+.env.*
+!.env.example
+*.env
+
+# Python compilation & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Local Databases & Logs
+*.db
+*.sqlite3
+*.log
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+~$*
+*.tmp
+
+# Scratch, Temporary & Staging
+scratch/
+incoming/
+backend/incoming/
+
+# Large Datasets and Raw Archives (>1MB)
+storage/*.zip
+storage/*.csv
+storage/**/*.csv
+storage/TRUSTLENS_FINAL_FRONTEND/
+storage/TRUSTLENS_FINAL_FRONTEND.zip
+storage/phiusiil+phishing+url+dataset/
+storage/IIIT-D_SMS_Dataset.zip
