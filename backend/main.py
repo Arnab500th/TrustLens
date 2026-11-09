@@ -47,7 +47,20 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception(f"Unhandled error on {request.method} {request.url.path}: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"{type(exc).__name__}: {str(exc)}"}
+    )
+
+
 def _severity_from_points(pts: int) -> str:
+    try:
+        pts = int(pts or 0)
+    except (ValueError, TypeError):
+        pts = 0
     if pts >= 35:
         return "critical"
     if pts >= 25:
@@ -60,123 +73,149 @@ def _severity_from_points(pts: int) -> str:
 
 
 def _format_frontend_result(raw: dict, source: str = "web") -> dict:
-    score = raw.get("score", 0)
-    label = raw.get("label", "Inconclusive")
-    findings = raw.get("findings") or []
-    facts = raw.get("facts") or {}
-    checks = raw.get("checks") or []
+    try:
+        score = int(raw.get("score") or raw.get("risk_score") or 0)
+        label = raw.get("label") or raw.get("verdict") or "Inconclusive"
+        findings = raw.get("findings") or []
+        facts = raw.get("facts") or {}
+        checks = raw.get("checks") or []
 
-    # Group findings into modules
-    modules = []
-    matched_brand = None
-    assigned_sources = set()
+        # Group findings into modules
+        modules = []
+        matched_brand = None
+        assigned_sources = set()
 
-    for c in checks:
-        m_name = c.get("module", "analysis")
-        m_status = c.get("status", "ok")
-        m_findings = []
+        for c in checks:
+            m_name = (c.get("module") or "analysis") if isinstance(c, dict) else "analysis"
+            m_status = (c.get("status") or "ok") if isinstance(c, dict) else "ok"
+            m_findings = []
 
+            for f in findings:
+                if isinstance(f, dict) and f.get("source") == m_name:
+                    pts = int(f.get("points") or 0)
+                    sev = _severity_from_points(pts)
+                    f_data = f.get("data") or {}
+                    if isinstance(f_data, dict) and "brand" in f_data and not matched_brand:
+                        matched_brand = f_data["brand"]
+
+                    m_findings.append({
+                        "id": f.get("id"),
+                        "source": m_name,
+                        "severity": sev,
+                        "message": f.get("description"),
+                        "description": f.get("description"),
+                        "points": pts,
+                        "data": f_data
+                    })
+
+            assigned_sources.add(m_name)
+            m_score = sum(int(f.get("points") or 0) for f in m_findings)
+            modules.append({
+                "module": m_name,
+                "status": m_status,
+                "score": m_score,
+                "findings": m_findings,
+                "facts": (facts.get(m_name) or {}) if isinstance(facts, dict) else {}
+            })
+
+        # Collect orphan findings whose source didn't match any check module name
+        orphan_findings = []
         for f in findings:
-            if isinstance(f, dict) and f.get("source") == m_name:
-                pts = f.get("points", 0)
+            if isinstance(f, dict) and f.get("source") not in assigned_sources:
+                pts = int(f.get("points") or 0)
                 sev = _severity_from_points(pts)
                 f_data = f.get("data") or {}
-                if "brand" in f_data and not matched_brand:
+                if isinstance(f_data, dict) and "brand" in f_data and not matched_brand:
                     matched_brand = f_data["brand"]
-
-                m_findings.append({
+                orphan_findings.append({
                     "id": f.get("id"),
-                    "source": m_name,
+                    "source": f.get("source") or "analysis",
                     "severity": sev,
                     "message": f.get("description"),
                     "description": f.get("description"),
                     "points": pts,
                     "data": f_data
                 })
-
-        assigned_sources.add(m_name)
-        m_score = sum(f["points"] for f in m_findings)
-        modules.append({
-            "module": m_name,
-            "status": m_status,
-            "score": m_score,
-            "findings": m_findings,
-            "facts": facts.get(m_name) or {}
-        })
-
-    # Collect orphan findings whose source didn't match any check module name
-    orphan_findings = []
-    for f in findings:
-        if isinstance(f, dict) and f.get("source") not in assigned_sources:
-            pts = f.get("points", 0)
-            sev = _severity_from_points(pts)
-            f_data = f.get("data") or {}
-            if "brand" in f_data and not matched_brand:
-                matched_brand = f_data["brand"]
-            orphan_findings.append({
-                "id": f.get("id"),
-                "source": f.get("source", "analysis"),
-                "severity": sev,
-                "message": f.get("description"),
-                "description": f.get("description"),
-                "points": pts,
-                "data": f_data
+        if orphan_findings:
+            modules.append({
+                "module": orphan_findings[0]["source"],
+                "status": "ok",
+                "score": sum(int(f.get("points") or 0) for f in orphan_findings),
+                "findings": orphan_findings,
+                "facts": {}
             })
-    if orphan_findings:
-        modules.append({
-            "module": orphan_findings[0]["source"],
-            "status": "ok",
-            "score": sum(f["points"] for f in orphan_findings),
-            "findings": orphan_findings,
-            "facts": {}
-        })
 
-    # Format explanation as string for UI + details object
-    exp = raw.get("explanation") or {}
-    if isinstance(exp, dict):
-        summary = exp.get("summary") or ""
-        points_list = exp.get("points") or []
-        pts_text = " ".join(
-            (p.get("text") or "") if isinstance(p, dict) else str(p)
-            for p in points_list
-        )
-        exp_text = f"{summary} {pts_text}".strip()
-    else:
-        exp_text = str(exp or "")
+        # Format explanation as string for UI + details object
+        exp = raw.get("explanation") or {}
+        if isinstance(exp, dict):
+            summary = exp.get("summary") or ""
+            points_list = exp.get("points") or []
+            pts_text = " ".join(
+                (p.get("text") or "") if isinstance(p, dict) else str(p)
+                for p in points_list
+            )
+            exp_text = f"{summary} {pts_text}".strip()
+        else:
+            exp_text = str(exp or "")
 
-    confirmed_by = []
-    for f in findings:
-        f_id = f.get("id")
-        if f_id == "PHISHTANK_VERIFIED":
-            confirmed_by.append("PhishTank")
-        elif f_id == "URLHAUS_LISTED":
-            confirmed_by.append("URLhaus")
+        confirmed_by = []
+        for f in findings:
+            f_id = f.get("id") if isinstance(f, dict) else getattr(f, "id", None)
+            if f_id == "PHISHTANK_VERIFIED":
+                confirmed_by.append("PhishTank")
+            elif f_id == "URLHAUS_LISTED":
+                confirmed_by.append("URLhaus")
 
-    return {
-        "scan_id": raw.get("scan_id", ""),
-        "url": raw.get("url", ""),
-        "host": raw.get("host", ""),
-        "label": label,
-        "verdict": label,
-        "score": score,
-        "risk_score": score,
-        "confidence": raw.get("coverage", 0.8),
-        "explanation": exp_text,
-        "explanation_details": exp,
-        "matched_brand": matched_brand,
-        "findings": findings,
-        "modules": modules,
-        "checks": checks,
-        "simple_checks": checks,
-        "unavailable": raw.get("unavailable", []),
-        "recommendations": raw.get("recommendations", []),
-        "facts": facts,
-        "source": source,
-        "created_at": raw.get("checked_at", datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")),
-        "status": "done",
-        "confirmed_malicious": label == "Confirmed Malicious",
-        "confirmed_by": confirmed_by
-    }
+        return {
+            "scan_id": raw.get("scan_id", ""),
+            "url": raw.get("url", ""),
+            "host": raw.get("host", ""),
+            "label": label,
+            "verdict": label,
+            "score": score,
+            "risk_score": score,
+            "confidence": raw.get("coverage", 0.8),
+            "explanation": exp_text,
+            "explanation_details": exp,
+            "matched_brand": matched_brand,
+            "findings": findings,
+            "modules": modules,
+            "checks": checks,
+            "simple_checks": checks,
+            "unavailable": raw.get("unavailable", []),
+            "recommendations": raw.get("recommendations", []),
+            "facts": facts,
+            "source": source,
+            "created_at": raw.get("checked_at", datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")),
+            "status": "done",
+            "confirmed_malicious": label == "Confirmed Malicious",
+            "confirmed_by": confirmed_by
+        }
+    except Exception as e:
+        logger.exception(f"Error in _format_frontend_result: {e}")
+        return {
+            "scan_id": raw.get("scan_id", ""),
+            "url": raw.get("url", ""),
+            "host": raw.get("host", ""),
+            "label": raw.get("label", "Inconclusive"),
+            "verdict": raw.get("label", "Inconclusive"),
+            "score": raw.get("score", 0),
+            "risk_score": raw.get("score", 0),
+            "confidence": 0.5,
+            "explanation": "Scan completed.",
+            "findings": raw.get("findings") or [],
+            "modules": [],
+            "checks": raw.get("checks") or [],
+            "simple_checks": raw.get("checks") or [],
+            "unavailable": [],
+            "recommendations": [],
+            "facts": raw.get("facts") or {},
+            "source": source,
+            "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "status": "done",
+            "confirmed_malicious": False,
+            "confirmed_by": []
+        }
 
 
 class ScanRequest(BaseModel):
@@ -214,7 +253,7 @@ async def health():
 
 @app.post("/api/scan")
 async def scan_endpoint(req: ScanRequest):
-    raw_url = req.url.strip()
+    raw_url = (req.url or "").strip()
     if not raw_url:
         raise HTTPException(status_code=400, detail="URL cannot be empty")
 
@@ -223,17 +262,29 @@ async def scan_endpoint(req: ScanRequest):
         await asyncio.to_thread(assert_public, clean)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.warning(f"Validation error for {raw_url}: {e}")
+        raise HTTPException(status_code=400, detail=f"Invalid URL: {str(e)}")
 
-    # Check database cache first (unless force=True is explicitly requested)
     from urllib.parse import urlsplit
     host = (urlsplit(clean).hostname or "").lower()
+
+    # Check database cache first (unless force=True is explicitly requested)
     if not req.force:
-        cached = find_cached_scan(clean, host)
-        if cached:
-            cached_res = dict(cached)
-            cached_res["cached"] = True
-            cached_res["cached_at"] = cached.get("created_at") or cached.get("checked_at")
-            return cached_res
+        try:
+            cached = find_cached_scan(clean, host)
+            if cached and isinstance(cached, dict):
+                # Ensure no MongoDB ObjectId or unpicklable fields leak to JSON serializer
+                cached_res = {k: v for k, v in cached.items() if k != "_id"}
+                cached_res["cached"] = True
+                cached_res["cached_at"] = cached.get("created_at") or cached.get("checked_at")
+                if "verdict" not in cached_res and "label" in cached_res:
+                    cached_res["verdict"] = cached_res["label"]
+                if "status" not in cached_res:
+                    cached_res["status"] = "done"
+                return cached_res
+        except Exception as e:
+            logger.warning(f"Cache lookup failed for {clean} ({e}). Proceeding to live scan.")
 
     try:
         past = list_scans(limit=200)
@@ -244,6 +295,10 @@ async def scan_endpoint(req: ScanRequest):
     try:
         raw_result = await scan_url(clean, past_scans=past)
         formatted = _format_frontend_result(raw_result, source=req.source or "web")
+        if not formatted.get("url"):
+            formatted["url"] = clean
+        if not formatted.get("host"):
+            formatted["host"] = host
         try:
             save_scan(formatted)
         except Exception as e:

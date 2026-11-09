@@ -52,6 +52,10 @@ scratch/
 incoming/
 backend/incoming/
 
+# Jupyter Notebooks & Checkpoints
+*.ipynb
+.ipynb_checkpoints/
+
 # Large Datasets and Raw Archives (>1MB)
 storage/*.zip
 storage/*.csv
