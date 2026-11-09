@@ -433,10 +433,16 @@ async function requestScan(url, source, force = false) {
     if (!response.ok) {
         let detail = "";
         try {
-            const errData = await response.json();
-            detail = errData.detail || errData.error || errData.message || "";
-        } catch {
-            detail = await response.text();
+            const rawText = await response.text();
+            try {
+                const errData = JSON.parse(rawText);
+                detail = errData.detail || errData.error || errData.message || "";
+            } catch {
+                // If it's an HTML error page from Cloudflare or Render, strip tags or keep first 120 chars
+                detail = rawText.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 160);
+            }
+        } catch (e) {
+            detail = `HTTP ${response.status}`;
         }
         throw new Error(detail || `Scan request returned HTTP ${response.status}.`);
     }

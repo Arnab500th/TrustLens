@@ -1,6 +1,7 @@
 # backend/modules/domain.py
 # Domain age and DNS record validation.
 import asyncio
+import socket
 import dns.resolver
 
 from core.models import Finding, ModuleResult, ScanContext
@@ -31,22 +32,34 @@ def findings_from_age(age_days: int | None) -> list[Finding]:
 
 
 def resolve_dns(domain: str) -> tuple[list[str], bool]:
-    """Resolve A and AAAA records for a domain."""
+    """Resolve A and AAAA records for a domain using system resolver and fallback."""
     ips = []
-    resolver = dns.resolver.Resolver()
-    resolver.timeout = 3.0
-    resolver.lifetime = 3.0
-    resolver.nameservers = ["1.1.1.1", "8.8.8.8"]
+    # 1. System resolver (fastest, natively respects Linux container /etc/resolv.conf)
+    try:
+        infos = socket.getaddrinfo(domain, None)
+        for info in infos:
+            ip = info[4][0]
+            if ip not in ips:
+                ips.append(ip)
+    except Exception:
+        pass
 
-    for rtype in ("A", "AAAA"):
+    # 2. dnspython fallback without hardcoded nameservers
+    if not ips:
         try:
-            answers = resolver.resolve(domain, rtype)
-            ips.extend([r.to_text() for r in answers])
-        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.Timeout, Exception):
+            resolver = dns.resolver.Resolver()
+            resolver.timeout = 2.0
+            resolver.lifetime = 2.0
+            for rtype in ("A", "AAAA"):
+                try:
+                    answers = resolver.resolve(domain, rtype)
+                    ips.extend([r.to_text() for r in answers if r.to_text() not in ips])
+                except Exception:
+                    pass
+        except Exception:
             pass
 
-    has_records = len(ips) > 0
-    return ips, has_records
+    return ips, len(ips) > 0
 
 
 async def run(ctx: ScanContext) -> ModuleResult:
