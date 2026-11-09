@@ -62,9 +62,9 @@ def _severity_from_points(pts: int) -> str:
 def _format_frontend_result(raw: dict, source: str = "web") -> dict:
     score = raw.get("score", 0)
     label = raw.get("label", "Inconclusive")
-    findings = raw.get("findings", [])
-    facts = raw.get("facts", {})
-    checks = raw.get("checks", [])
+    findings = raw.get("findings") or []
+    facts = raw.get("facts") or {}
+    checks = raw.get("checks") or []
 
     # Group findings into modules
     modules = []
@@ -72,15 +72,15 @@ def _format_frontend_result(raw: dict, source: str = "web") -> dict:
     assigned_sources = set()
 
     for c in checks:
-        m_name = c["module"]
-        m_status = c["status"]
+        m_name = c.get("module", "analysis")
+        m_status = c.get("status", "ok")
         m_findings = []
 
         for f in findings:
-            if f.get("source") == m_name:
+            if isinstance(f, dict) and f.get("source") == m_name:
                 pts = f.get("points", 0)
                 sev = _severity_from_points(pts)
-                f_data = f.get("data", {})
+                f_data = f.get("data") or {}
                 if "brand" in f_data and not matched_brand:
                     matched_brand = f_data["brand"]
 
@@ -101,16 +101,16 @@ def _format_frontend_result(raw: dict, source: str = "web") -> dict:
             "status": m_status,
             "score": m_score,
             "findings": m_findings,
-            "facts": facts.get(m_name, {})
+            "facts": facts.get(m_name) or {}
         })
 
     # Collect orphan findings whose source didn't match any check module name
     orphan_findings = []
     for f in findings:
-        if f.get("source") not in assigned_sources:
+        if isinstance(f, dict) and f.get("source") not in assigned_sources:
             pts = f.get("points", 0)
             sev = _severity_from_points(pts)
-            f_data = f.get("data", {})
+            f_data = f.get("data") or {}
             if "brand" in f_data and not matched_brand:
                 matched_brand = f_data["brand"]
             orphan_findings.append({
@@ -132,13 +132,17 @@ def _format_frontend_result(raw: dict, source: str = "web") -> dict:
         })
 
     # Format explanation as string for UI + details object
-    exp = raw.get("explanation", {})
+    exp = raw.get("explanation") or {}
     if isinstance(exp, dict):
-        summary = exp.get("summary", "")
-        pts_text = " ".join(p.get("text", "") for p in exp.get("points", []))
+        summary = exp.get("summary") or ""
+        points_list = exp.get("points") or []
+        pts_text = " ".join(
+            (p.get("text") or "") if isinstance(p, dict) else str(p)
+            for p in points_list
+        )
         exp_text = f"{summary} {pts_text}".strip()
     else:
-        exp_text = str(exp)
+        exp_text = str(exp or "")
 
     confirmed_by = []
     for f in findings:

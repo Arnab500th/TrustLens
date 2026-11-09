@@ -431,7 +431,14 @@ async function requestScan(url, source, force = false) {
     });
 
     if (!response.ok) {
-        throw new Error(`Scan request returned HTTP ${response.status}.`);
+        let detail = "";
+        try {
+            const errData = await response.json();
+            detail = errData.detail || errData.error || errData.message || "";
+        } catch {
+            detail = await response.text();
+        }
+        throw new Error(detail || `Scan request returned HTTP ${response.status}.`);
     }
 
     const startData = await response.json();
@@ -492,7 +499,7 @@ async function performScan(rawURL, source = "web", triggerButton = null, force =
 
         const message = USE_MOCK
             ? "The sample scan could not be completed."
-            : `${error.message} Check that the FastAPI backend is running at ${API_BASE}.`;
+            : error.message;
 
         showToast("Could not complete scan", message, "!");
     } finally {
